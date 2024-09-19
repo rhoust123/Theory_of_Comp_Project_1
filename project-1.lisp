@@ -276,16 +276,43 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; Finite Automata Lecture: Algorithm 1
+
 (defun dfa-simulate (dfa sequence)
+
   "True if DFA accepts SEQUENCE."
   (assert (dfa-p dfa))
-  (labels ((edelta (state list)
-             (TODO 'dfa-simulate)))
-    (let ((final-state (edelta (finite-automaton-start dfa)
-                               (coerce sequence 'list)))) ; Coerce to list for simplicity
-      (if (find final-state (finite-automaton-accept dfa) :test #'equal)
+  (labels
+    (
+     (edelta (state list) ;; state: current state, list: remaining transitions
+
+        (cond
+          (
+            (equal list nil)
+            state
+          )
+          (
+            t
+            (edelta (dfa-transition dfa state (car list)) (cdr list))
+          )
+        )
+
+      )
+    )
+    (let
+      (
+        (final-state ;; Coerce to list for simplicity
+          (edelta (finite-automaton-start dfa) (coerce sequence 'list))
+        )
+      )
+      (if
+         (find final-state (finite-automaton-accept dfa) :test #'equal)
           t
-          nil))))
+          nil
+      )
+    )
+  )
+
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
