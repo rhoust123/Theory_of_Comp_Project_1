@@ -283,7 +283,7 @@
   (assert (dfa-p dfa))
   (labels
     (
-     (edelta (state list) ;; state: current state, list: remaining transitions
+      (edelta (state list) ;; state: current state, list: remaining transitions
 
         (cond
           (
@@ -320,9 +320,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun e-closure (nfa s c)
-  (labels ((visit (c q)
-             (TODO 'visit)))
-    (TODO 'e-closure)))
+
+  (labels
+    (
+      (visit (c q)
+
+        (cond
+          (
+            (member q c)
+            c
+          )
+          (
+            t
+            (e-closure nfa (fa-transition nfa q :epsilon) (cons q c))
+          )
+        )
+
+      )
+    )
+    (fold-left #'visit c s)
+  )
+
+)
 
 (defun move-e-closure (nfa s a)
   (labels ((visit (c q)

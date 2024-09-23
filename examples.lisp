@@ -2,7 +2,7 @@
 ;;; FA structure ;;;
 ;;;;;;;;;;;;;;;;;;;;
 
-;; Make an DFA
+;; Make a DFA
 (defparameter *dfa-0*
   (make-fa '((q0 0 q0)
              (q0 1 q1)
