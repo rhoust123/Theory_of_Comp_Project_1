@@ -348,10 +348,6 @@
              (e-closure nfa (fa-transition nfa q a) c)))
     (fold-left #'visit nil (e-closure nfa s nil))))
 
-;; my understanding of this function: 
-;; start at state s, and read symbol a (leading to a new state) 
-;; from that state, perform e closure and find all states reachable from state "q" using epsilon transitions (s=>a) 
-
 (defun nfa-simulate (nfa sequence)
   "True if NFA accepts SEQUENCE."
   (labels ((edelta (subset list)
