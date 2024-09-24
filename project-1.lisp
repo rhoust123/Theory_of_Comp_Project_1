@@ -345,8 +345,8 @@
 
 (defun move-e-closure (nfa s a)
   (labels ((visit (c q)
-             (TODO 'visit)))
-    (TODO 'move-e-closure)))
+             (e-closure nfa (fa-transition nfa q a) c)))
+    (fold-left #'visit nil (e-closure nfa s nil))))
 
 ;; my understanding of this function: 
 ;; start at state s, and read symbol a (leading to a new state) 
