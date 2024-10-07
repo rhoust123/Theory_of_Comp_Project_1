@@ -350,8 +350,19 @@
 
 (defun nfa-simulate (nfa sequence)
   "True if NFA accepts SEQUENCE."
+  
+  ;TODO: check that nfa is actually an NFA
+
   (labels ((edelta (subset list)
-             (TODO 'nfa-simulate)))
+      (cond 
+        (
+          (equal list nil) subset
+        )
+        
+        (
+          t (edelta (e-closure nfa (cdr list) subset) (cdr list))
+        )
+      )))
     (let* ((q0 (finite-automaton-start nfa))
            (f (finite-automaton-accept nfa))
            (u (e-closure nfa (list q0) nil))
