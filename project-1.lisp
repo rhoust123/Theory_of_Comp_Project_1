@@ -446,19 +446,23 @@
   (labels ((h (regex)
              (cond
                
-               ((eq regex :.)
-                (assert alphabet)
-                `(:union ,@alphabet))
+               ;((eq regex :.)
+               ; (assert alphabet)
+               ; `(:union ,@alphabet))
                
                ((atom regex)
                 regex)
                
                (t (destructuring-bind (operator &rest args) regex
-                    (cond 
-                    
-                     ((eq operator :+) `(:concatenation ,(simplify-regex args) (:kleene-closure ,(simplify-regex args))))
+                    (cond
+
+                     ((eq operator :.)  (assert alphabet) `(:union ,@alphabet))
                      
-                     (t `(:union :epsilon ,(simplify-regex args)))
+                     ((eq operator :?) `(:union :epsilon ,(simplify-regex args alphabet)))
+                    
+                     ((eq operator :+) `(:concatenation ,(simplify-regex args alphabet) (:kleene-closure ,(simplify-regex args alphabet))))
+
+                     (t operator)
                     )
                   )
                 )
