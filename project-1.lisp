@@ -451,14 +451,12 @@
                ((atom regex)
                 regex)
                (t (destructuring-bind (operator &rest args) regex
-                    (TODO 'simplify-regex))))))
+                    (case operator
+                           (:+ `(:concatenate ,(simplify-regex args) ,(:kleene-closure (simplify-regex args))))
+                           (:? `(:union ,(simplify-regex args) :epsilon))
+                           ))))))
     (h regex))
-  ; (trivia: match regex 
-  ;       (:+ (:concatenate (simplify-regex args) (:kleene-closure simplify-regex args)))
-  ;       (:? )
-  ;       (_ ????)
-  ;   )
-  )
+)
 
 ;;; The functions FA-CONCATENATE, FA-UNION, and FA-REPEAT apply the
 ;;; corresponding regular operation (union, concatenation, and
