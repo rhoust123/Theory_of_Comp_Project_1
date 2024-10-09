@@ -445,18 +445,35 @@
   "Convert :., :?, :+ to only :union, :concatenation, :kleene-closure"
   (labels ((h (regex)
              (cond
+               
                ((eq regex :.)
                 (assert alphabet)
                 `(:union ,@alphabet))
+               
                ((atom regex)
                 regex)
+               
                (t (destructuring-bind (operator &rest args) regex
-                    (case operator
-                           (:+ `(:concatenate ,(simplify-regex args) ,(:kleene-closure (simplify-regex args))))
-                           (:? `(:union ,(simplify-regex args) :epsilon))
-                           ))))))
-    (h regex))
+                    (cond 
+                    
+                     ((eq operator :+) `(:concatenation ,(simplify-regex args) (:kleene-closure ,(simplify-regex args))))
+                     
+                     (t `(:union :epsilon ,(simplify-regex args)))
+                    )
+                  )
+                )
+              )
+            )
+          )
+        (h regex)
+      )
 )
+
+; (simplify-regex '(:? (:union 0 1)) '(0 1))
+; ;; => (:union :epsilon (:union 0 1))
+
+; (simplify-regex '(:+ :.) '(0 1))
+; ;; => (:concatenation (:union 0 1) (:kleene-closure (:union 0 1)))
 
 ;;; The functions FA-CONCATENATE, FA-UNION, and FA-REPEAT apply the
 ;;; corresponding regular operation (union, concatenation, and
