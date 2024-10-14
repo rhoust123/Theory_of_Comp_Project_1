@@ -637,17 +637,151 @@
 ;; Lecture: Decision Properties of Regular Languages, Emptiness
 (defun fa-empty (fa)
   "Does FA represent the empty set?"
-  (TODO 'fa-empty))
+  ;; (TODO 'fa-empty))
+  (let ((visited (make-hash-table :test #'equal))
+        (queue (list (finite-automaton-start fa))))
+    (loop
+      ;; Check if there are any states left to explore
+      (when (null queue) (return t)) ; If the queue is empty, the FA is empty
+      (let ((state (pop queue)))
+        ;; If we reach an accept state, return false (not empty)
+        (when (member state (finite-automaton-accept fa))
+          (return nil))
+        ;; Mark the state as visited
+        (setf (gethash state visited) t)
+        ;; Enqueue all reachable states from the current state
+        (dolist (input (finite-automaton-alphabet fa))
+          (dolist (next-state (fa-transition fa state input))
+            (unless (gethash next-state visited)
+              (push next-state queue))))))))
 
 ;; Lecture: Closure Properties of Regular Languages, State Minimization
 (defun dfa-minimize (dfa)
   "Return an equivalent DFA with minimum state."
-  (TODO 'dfa-minimize))
+  ;; (TODO 'dfa-minimize))
+  (let* ((states (finite-automaton-states dfa))
+         (accept-states (finite-automaton-accept dfa))
+         (alphabet (finite-automaton-alphabet dfa))
+         ;; Table to mark distinguishable state pairs
+         (distinguished (make-hash-table :test #'equal)))
+
+    ;; Step 1: Mark pairs of accepting and non-accepting states as distinguishable
+    (dolist (s1 states)
+      (dolist (s2 states)
+        (when (and (not (equal s1 s2))
+                   (xor (member s1 accept-states) (member s2 accept-states)))
+          (setf (gethash (cons s1 s2) distinguished) t))))
+
+    ;; Step 2: Propagate distinguishability based on transitions
+    (loop
+      (let ((updated nil))
+        (dolist (s1 states)
+          (dolist (s2 states)
+            (unless (or (equal s1 s2) (gethash (cons s1 s2) distinguished))
+              ;; Check transitions to see if they lead to distinguishable states
+              (dolist (symbol alphabet)
+                (let ((t1 (dfa-transition dfa s1 symbol))
+                      (t2 (dfa-transition dfa s2 symbol)))
+                  (when (and t1 t2
+                             (not (equal t1 t2))
+                             (gethash (cons (min t1 t2) (max t1 t2)) distinguished))
+                    (setf (gethash (cons s1 s2) distinguished) t)
+                    (setf updated t))))))
+        ;; Exit the loop when no more updates are made
+        (unless updated (return))))
+
+    ;; Step 3: Group indistinguishable states into equivalence classes
+    (let ((state-groups (make-hash-table :test #'equal)))
+      (dolist (s1 states)
+        (dolist (s2 states)
+          (unless (gethash (cons s1 s2) distinguished)
+            ;; Put s1 and s2 in the same equivalence class
+            (let ((group (or (gethash s1 state-groups)
+                             (gethash s2 state-groups)
+                             (gensym "group"))))
+              (setf (gethash s1 state-groups) group)
+              (setf (gethash s2 state-groups) group)))))
+
+      ;; Step 4: Construct the minimized DFA
+      (let ((new-states (remove-duplicates (hash-table-keys state-groups) :test #'equal))
+            (new-start (gethash (finite-automaton-start dfa) state-groups))
+            (new-accept-states (remove-duplicates
+                                (mapcar (lambda (state)
+                                          (gethash state state-groups))
+                                        accept-states)
+                                :test #'equal))
+            (new-edges '()))
+
+        ;; Map original DFA transitions to transitions in the minimized DFA
+        (dolist (edge (finite-automaton-edges dfa))
+          (destructuring-bind (s0 symbol s1) edge
+            (let ((new-s0 (gethash s0 state-groups))
+                  (new-s1 (gethash s1 state-groups)))
+              (push (list new-s0 symbol new-s1) new-edges))))
+
+        ;; Remove duplicate edges and create the minimized DFA
+        (make-fa (remove-duplicates new-edges :test #'equal)
+                 new-start
+                 new-accept-states)))))
 
 ;; Lecture: Closure Properties of Regular Languages, Intersection
 (defun dfa-intersection (dfa-0 dfa-1)
   "Return the intersection FA."
-  (TODO 'dfa-intersection))
+  ;; (TODO 'dfa-intersection))
+  (assert (equal (finite-automaton-alphabet dfa-0) 
+                 (finite-automaton-alphabet dfa-1))
+          ;; (dfa-0 dfa-1)
+          ;; "Both DFAs must use the same input alphabet for a valid intersection operation.")
+
+  ;; Define the alphabet for the new DFA
+  (let* ((alphabet (finite-automaton-alphabet dfa-0))
+         ;; Generate product states as pairs (s0, s1)
+         (states (loop for s0 in (finite-automaton-states dfa-0)
+                       nconc (loop for s1 in (finite-automaton-states dfa-1)
+                                   collect (cons s0 s1))))
+         ;; Define the start state as the pair of start states from both DFAs
+         (start (cons (finite-automaton-start dfa-0) 
+                      (finite-automaton-start dfa-1)))
+         ;; Collect accept states where both states in the pair are accepting
+         (accept-states '())
+         ;; Initialize an empty list for edges
+         (edges '()))
+
+    ;; Identify accept states in the product DFA
+    (dolist (s0 (finite-automaton-accept dfa-0))
+      (dolist (s1 (finite-automaton-accept dfa-1))
+        (let ((product-accept (cons s0 s1)))
+          ;; Only pairs where both states are accepting are added as accept states
+          (push product-accept accept-states))))
+
+    ;; Define transitions for each state pair and input symbol
+    (dolist (state states)
+      (let ((s0 (car state))
+            (s1 (cdr state)))
+
+        ;; Process each input symbol
+        (dolist (input alphabet)
+          ;; Find the transitions for s0 and s1 on the input symbol
+          (let ((t0 (dfa-transition dfa-0 s0 input))
+                (t1 (dfa-transition dfa-1 s1 input)))
+            (when (and t0 t1)
+              ;; Both states have transitions on this input, so add it to the edges
+              (let ((target-state (cons t0 t1)))
+                (push (list state input target-state) edges)))))))
+
+    ;; Remove duplicates in edges and accept states for a clean DFA
+    (let ((unique-edges (remove-duplicates edges :test #'equal))
+          (unique-accept-states (remove-duplicates accept-states :test #'equal)))
+
+      ;; Display information for debugging
+      (format t "~%DFA-Intersection - Start State: ~A" start)
+      (format t "~%DFA-Intersection - Alphabet: ~A" alphabet)
+      (format t "~%DFA-Intersection - Accept States: ~A" unique-accept-states)
+      (format t "~%DFA-Intersection - Total States: ~D" (length states))
+      (format t "~%DFA-Intersection - Total Edges: ~D" (length unique-edges))
+
+      ;; Construct and return the new DFA representing the intersection
+      (make-fa unique-edges start unique-accept-states))))
 
 ;; Lecture: Decision Properties of Regular Languages, Equivalence
 (defun dfa-equivalent (dfa-0 dfa-1)
