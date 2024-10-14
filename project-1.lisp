@@ -442,42 +442,57 @@
 ;; - (:+ X) -> (:concatenation X (:kleene-closure X))
 
 (defun simplify-regex (regex &optional alphabet)
+
   "Convert :., :?, :+ to only :union, :concatenation, :kleene-closure"
-  (labels ((h (regex)
-             (cond
-               
-               ;((eq regex :.)
-               ; (assert alphabet)
-               ; `(:union ,@alphabet))
-               
-               ((atom regex)
-                regex)
-               
-               (t (destructuring-bind (operator &rest args) regex
-                    (cond
+  (cond
+    (
+      (eq regex :.) ;; '0-ary' operator
+      (assert alphabet)
+      `(union ,@alphabet)
+    )
+    (
+      (atom regex)
+      regex
+    )
+    (
+      t ;; at this point, car must be a unary or binary operator
+      (labels
+        (
+          (process-mono (xpr)
 
-                     ((eq operator :.)  (assert alphabet) `(:union ,@alphabet))
-                     
-                     ((eq operator :?) `(:union :epsilon ,(simplify-regex args alphabet)))
-                    
-                     ((eq operator :+) `(:concatenation ,(simplify-regex args alphabet) (:kleene-closure ,(simplify-regex args alphabet))))
+            (simplify-regex (car (cdr xpr)) alphabet)
 
-                     (t operator)
-                    )
-                  )
-                )
-              )
-            )
           )
-        (h regex)
+          (process-duo (xpr)
+
+            `(,(process-mono xpr) ,(simplify-regex (car (cdr (cdr xpr))) alphabet))
+
+          )
+        )
+        (case (car regex)
+          (
+            :?
+            `(:union :epsilon ,(process-mono regex))
+          )
+          (
+            :+
+            `(:concatenation ,(process-mono regex) (:kleene-closure ,(process-mono regex)))
+          )
+          (
+            :kleene-closure
+            `(:kleene-closure ,(process-mono regex))
+          )
+          (
+            otherwise
+            (cons (car regex) (process-duo regex))
+          )
+        )
       )
+    )
+  )
+
 )
 
-; (simplify-regex '(:? (:union 0 1)) '(0 1))
-; ;; => (:union :epsilon (:union 0 1))
-
-; (simplify-regex '(:+ :.) '(0 1))
-; ;; => (:concatenation (:union 0 1) (:kleene-closure (:union 0 1)))
 
 ;;; The functions FA-CONCATENATE, FA-UNION, and FA-REPEAT apply the
 ;;; corresponding regular operation (union, concatenation, and
