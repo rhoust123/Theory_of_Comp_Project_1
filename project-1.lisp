@@ -408,10 +408,32 @@
                ;; visited subsets in the hash table
                (sort u #'state-predicate))
              (visit-symbol (edges subset-0 input-symbol)
-               (TODO 'nfa->dfa-visit-symbol))
+               ;; (TODO 'nfa->dfa-visit-symbol))
+               (let* ((next-subset (sort-subset (move-e-closure nfa subset-0 input-symbol))))
+                 ;; Check if the next subset has already been visited
+                 (unless (gethash next-subset visited-hash)
+                   ;; Mark it as visited and process this new subset
+                   (setf (gethash next-subset visited-hash) t)
+                   (visit-subset edges next-subset))
+                 ;; Add the transition to the DFA edges
+                 (push (list subset-0 input-symbol next-subset) edges)))
              (visit-subset (edges subset)
-               (TODO 'nfa->dfa-visit-subset)))
-      (TODO 'nfa->dfa))))
+               ;; (TODO 'nfa->dfa-visit-subset)))
+               ;; Process each symbol in the alphabet for this subset
+               (dolist (symbol alphabet)
+                 (visit-symbol edges subset symbol))
+                ;; Mark the subset as accepting if any of its states are accepting states in the NFA
+                 (when (intersection subset (finite-automaton-accept nfa) :test #'equal)
+                   (push subset dfa-accept)))
+      ;; (TODO 'nfa->dfa))))
+      (let ((start-subset (sort-subset (e-closure nfa (list (finite-automaton-start nfa))))))
+        ;; Mark this initial subset as visited
+        (setf (gethash start-subset visited-hash) t)
+        ;; Begin recursive process to build the DFA by visiting all reachable subsets
+        (visit-subset dfa-edges start-subset))
+      ;; Build and return the DFA using the gathered edges and accepting states
+      (make-fa dfa-edges start-subset dfa-accept))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -526,12 +548,45 @@
   "Find the union of NFA-1 and NFA-2."
   (assert (not (intersection (finite-automaton-states nfa-1)
                              (finite-automaton-states nfa-2))))
-  (TODO 'fa-union))
+  ;; (TODO 'fa-union))
+  (let ((start (newstate))
+        (accept (newstate)))
+    (make-fa (append (list (list start :epsilon (finite-automaton-start nfa-1))
+                           (list start :epsilon (finite-automaton-start nfa-2)))
+                     (map 'list (lambda (x)
+                                  (list x :epsilon accept))
+                          (append (finite-automaton-accept nfa-1)
+                                  (finite-automaton-accept nfa-2)))
+                     (finite-automaton-edges nfa-1)
+                     (finite-automaton-edges nfa-2))
+             start
+             (list accept))))
 
 ;; Regular Expression Lecture: Kleene-Closure
 (defun fa-repeat (nfa)
   "Find the repetition / Kleene-closure of NFA."
-  (TODO 'fa-repeat))
+  ;; (TODO 'fa-repeat))
+  (let ((start (newstate))   ; New start state
+        (accept (newstate))) ; New accept state
+    (make-fa (append 
+              ;; Epsilon transition from new start to the original start state
+              (list (list start :epsilon (finite-automaton-start nfa))
+                    ;; Epsilon transition from new start to new accept state, allowing for zero occurrences
+                    (list start :epsilon accept))
+              ;; Epsilon transitions from original accept states back to the original start state for repetition
+              (map 'list (lambda (state)
+              ;; (mapcar (lambda (state)
+                           (list state :epsilon (finite-automaton-start nfa)))
+                   (finite-automaton-accept nfa))
+              ;; Epsilon transitions from original accept states to new accept state
+              (map 'list (lambda (state)
+              ;; (mapcar (lambda (state)
+                           (list state :epsilon accept))
+                   (finite-automaton-accept nfa))
+              ;; Include all edges from the original NFA
+              (finite-automaton-edges nfa))
+             start
+             (list accept))))
 
 ;; Convert a regular expression to a nondeterministic finite
 ;; automaton.
@@ -549,8 +604,31 @@
     ((null regex) ; Base case for empty set
      (make-fa nil (newstate) (list (newstate))))
     ;; TODO: other base cases
-    (t
-      (TODO 'regex->nfa))))
+        ;; Base case for a single symbol or :epsilon
+    ((atom regex)
+     (let ((start (newstate))
+           (accept (newstate)))
+       (if (eq regex :epsilon)
+           ;; For :epsilon, create an NFA with a direct epsilon transition
+           (make-fa (list (list start :epsilon accept)) start (list accept))
+         ;; For any other symbol, create an NFA with a direct symbol transition
+         (make-fa (list (list start regex accept)) start (list accept)))))
+
+    ;; Case for :union - Combine NFAs for each subexpression
+    ((eq (car regex) :union)
+     (reduce #'fa-union (mapcar #'regex->nfa (cdr regex))))
+
+    ;; Case for :concatenation - Concatenate NFAs for each subexpression
+    ((eq (car regex) :concatenation)
+     (reduce #'fa-concatenate (mapcar #'regex->nfa (cdr regex))))
+
+    ;; Case for :kleene-closure - Apply Kleene closure on the subexpression
+    ((eq (car regex) :kleene-closure)
+     (fa-repeat (regex->nfa (cadr regex))))
+    ;; (t
+    ;;   (TODO 'regex->nfa))))
+    (t (error "Unsupported operator in REGEX->NFA: ~A" (car regex))))) 
+            ;; Not sure!
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Part 3: Regular Decision and Closure Properties ;;;
