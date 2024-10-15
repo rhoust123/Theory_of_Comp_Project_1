@@ -6,7 +6,7 @@
 \title{Project 1: Regular Languages and Pursuit-Evasion}
 \author{CSCI 561}
 
-\rhead{Names:}
+\rhead{Names: Shadi Nourriz, Nathaniel Graves, Rhett Houston}
 
 %\keytrue
 
@@ -31,10 +31,21 @@
   \texttt{grep} and the implementation in this project to search the
   starter code for all \texttt{TODO}s.
 
+  \begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.5\textwidth]{grepScreenCap.png} % Path to the image file
+    \caption{Searching for Project \texttt{TODO}s using \texttt{grep}}
+    \label{fig:grep-usage}
+  \end{figure}
+
   \item \textbf{NFA vs. DFA Simulation:} The original grep utility (as
   written by Ken Thompson) converted the provided regular expression
   to an NFA and then simulated the NFA on the input text.  Why would
   Thompson have used NFA simulation instead of DFA simulation?
+
+  \color{blue}
+  Thompson probably used NFA simulation, instead of DFA simulation, because of the use-case intended by \texttt{grep}. This utility takes in a keyword and searches a set of strings for occurrences of the keyword. In other words, the NFA that has been constructed is simulated one time on the entirety of the set of strings. If the utility were meant to take in several different sets of strings and search them for a keyword, converting the keyword NFA to a DFA and then simulating the set of strings on that DFA would make sense, because DFA simulation is more efficient than NFA simulation. In the case of \texttt{grep}, however, it is a better idea to just simulate the NFA directly, one time. This is because converting the NFA to a DFA is a potentially computationally expensive operation (there could be many thousands of new states created), and it will only pay off if the speed offered by DFA simulation offsets the conversion cost (e.g., a situation in which we must simulate more than once). NFA simulation, then, is what Thompson chose because of efficiency considerations.
+  \color{black}
 
   \item \textbf{Time Complexity:} To simulate an NFA
   $N=\lmtuple{Q}{\Sigma}{\delta}{q_0}{F}$ on string $\sigma$ using the
