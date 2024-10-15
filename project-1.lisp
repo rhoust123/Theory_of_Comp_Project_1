@@ -477,36 +477,42 @@
       regex
     )
     (
-      t ;; at this point, car must be a unary or binary operator
+      t ;; at this point, car must be at least a unary operator
       (labels
         (
-          (process-mono (xpr)
+          (process-vals (xpr out)
 
-            (simplify-regex (car (cdr xpr)) alphabet)
-
-          )
-          (process-duo (xpr)
-
-            `(,(process-mono xpr) ,(simplify-regex (car (cdr (cdr xpr))) alphabet))
+            (cond
+              (
+                (equal xpr nil)
+                out
+              )
+              (
+                t
+                (process-vals (cdr xpr) (cons (simplify-regex (car xpr) alphabet) out))
+              )
+            )
 
           )
         )
-        (case (car regex)
+        (let
           (
-            :?
-            `(:union :epsilon ,(process-mono regex))
+            (exclude-first (reverse (process-vals (cdr regex) nil)))
+            (include-first (reverse (process-vals regex nil)))
           )
-          (
-            :+
-            `(:concatenation ,(process-mono regex) (:kleene-closure ,(process-mono regex)))
-          )
-          (
-            :kleene-closure
-            `(:kleene-closure ,(process-mono regex))
-          )
-          (
-            otherwise
-            (cons (car regex) (process-duo regex))
+          (case (car regex)
+            (
+              :?
+              `(:union :epsilon ,exclude-first)
+            )
+            (
+              :+
+              `(:concatenation ,exclude-first (:kleene-closure ,exclude-first))
+            )
+            (
+              otherwise
+              include-first
+            )
           )
         )
       )
