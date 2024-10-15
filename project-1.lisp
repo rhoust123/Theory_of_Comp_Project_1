@@ -351,7 +351,15 @@
 (defun nfa-simulate (nfa sequence)
   "True if NFA accepts SEQUENCE."
   (labels ((edelta (subset list)
-             (TODO 'nfa-simulate)))
+      (cond 
+        (
+          (equal list nil) subset
+        )
+        
+        (
+          t (edelta (move-e-closure nfa subset (car list)) (cdr list))
+        )
+      )))
     (let* ((q0 (finite-automaton-start nfa))
            (f (finite-automaton-accept nfa))
            (u (e-closure nfa (list q0) nil))
@@ -400,10 +408,32 @@
                ;; visited subsets in the hash table
                (sort u #'state-predicate))
              (visit-symbol (edges subset-0 input-symbol)
-               (TODO 'nfa->dfa-visit-symbol))
+               ;; (TODO 'nfa->dfa-visit-symbol))
+               (let* ((next-subset (sort-subset (move-e-closure nfa subset-0 input-symbol))))
+                 ;; Check if the next subset has already been visited
+                 (unless (gethash next-subset visited-hash)
+                   ;; Mark it as visited and process this new subset
+                   (setf (gethash next-subset visited-hash) t)
+                   (visit-subset edges next-subset))
+                 ;; Add the transition to the DFA edges
+                 (push (list subset-0 input-symbol next-subset) edges)))
              (visit-subset (edges subset)
-               (TODO 'nfa->dfa-visit-subset)))
-      (TODO 'nfa->dfa))))
+               ;; (TODO 'nfa->dfa-visit-subset)))
+               ;; Process each symbol in the alphabet for this subset
+               (dolist (symbol alphabet)
+                 (visit-symbol edges subset symbol))
+                ;; Mark the subset as accepting if any of its states are accepting states in the NFA
+                 (when (intersection subset (finite-automaton-accept nfa) :test #'equal)
+                   (push subset dfa-accept)))
+      ;; (TODO 'nfa->dfa))))
+      (let ((start-subset (sort-subset (e-closure nfa (list (finite-automaton-start nfa))))))
+        ;; Mark this initial subset as visited
+        (setf (gethash start-subset visited-hash) t)
+        ;; Begin recursive process to build the DFA by visiting all reachable subsets
+        (visit-subset dfa-edges start-subset))
+      ;; Build and return the DFA using the gathered edges and accepting states
+      (make-fa dfa-edges start-subset dfa-accept))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -434,17 +464,63 @@
 ;; - (:+ X) -> (:concatenation X (:kleene-closure X))
 
 (defun simplify-regex (regex &optional alphabet)
+
   "Convert :., :?, :+ to only :union, :concatenation, :kleene-closure"
-  (labels ((h (regex)
-             (cond
-               ((eq regex :.)
-                (assert alphabet)
-                `(:union ,@alphabet))
-               ((atom regex)
-                regex)
-               (t (destructuring-bind (operator &rest args) regex
-                    (TODO 'simplify-regex))))))
-    (h regex)))
+  (cond
+    (
+      (eq regex :.) ;; '0-ary' operator
+      (assert alphabet)
+      `(union ,@alphabet)
+    )
+    (
+      (atom regex)
+      regex
+    )
+    (
+      t ;; at this point, car must be at least a unary operator
+      (labels
+        (
+          (process-vals (xpr out)
+
+            (cond
+              (
+                (equal xpr nil)
+                out
+              )
+              (
+                t
+                (process-vals (cdr xpr) (cons (simplify-regex (car xpr) alphabet) out))
+              )
+            )
+
+          )
+        )
+        (let
+          (
+            (exclude-first (reverse (process-vals (cdr regex) nil)))
+            (include-first (reverse (process-vals regex nil)))
+          )
+          (case (car regex)
+            (
+              :?
+              `(:union :epsilon ,exclude-first)
+            )
+            (
+              :+
+              `(:concatenation ,exclude-first (:kleene-closure ,exclude-first))
+            )
+            (
+              otherwise
+              include-first
+            )
+          )
+        )
+      )
+    )
+  )
+
+)
+
 
 ;;; The functions FA-CONCATENATE, FA-UNION, and FA-REPEAT apply the
 ;;; corresponding regular operation (union, concatenation, and
@@ -478,12 +554,45 @@
   "Find the union of NFA-1 and NFA-2."
   (assert (not (intersection (finite-automaton-states nfa-1)
                              (finite-automaton-states nfa-2))))
-  (TODO 'fa-union))
+  ;; (TODO 'fa-union))
+  (let ((start (newstate))
+        (accept (newstate)))
+    (make-fa (append (list (list start :epsilon (finite-automaton-start nfa-1))
+                           (list start :epsilon (finite-automaton-start nfa-2)))
+                     (map 'list (lambda (x)
+                                  (list x :epsilon accept))
+                          (append (finite-automaton-accept nfa-1)
+                                  (finite-automaton-accept nfa-2)))
+                     (finite-automaton-edges nfa-1)
+                     (finite-automaton-edges nfa-2))
+             start
+             (list accept))))
 
 ;; Regular Expression Lecture: Kleene-Closure
 (defun fa-repeat (nfa)
   "Find the repetition / Kleene-closure of NFA."
-  (TODO 'fa-repeat))
+  ;; (TODO 'fa-repeat))
+  (let ((start (newstate))   ; New start state
+        (accept (newstate))) ; New accept state
+    (make-fa (append 
+              ;; Epsilon transition from new start to the original start state
+              (list (list start :epsilon (finite-automaton-start nfa))
+                    ;; Epsilon transition from new start to new accept state, allowing for zero occurrences
+                    (list start :epsilon accept))
+              ;; Epsilon transitions from original accept states back to the original start state for repetition
+              (map 'list (lambda (state)
+              ;; (mapcar (lambda (state)
+                           (list state :epsilon (finite-automaton-start nfa)))
+                   (finite-automaton-accept nfa))
+              ;; Epsilon transitions from original accept states to new accept state
+              (map 'list (lambda (state)
+              ;; (mapcar (lambda (state)
+                           (list state :epsilon accept))
+                   (finite-automaton-accept nfa))
+              ;; Include all edges from the original NFA
+              (finite-automaton-edges nfa))
+             start
+             (list accept))))
 
 ;; Convert a regular expression to a nondeterministic finite
 ;; automaton.
@@ -501,8 +610,31 @@
     ((null regex) ; Base case for empty set
      (make-fa nil (newstate) (list (newstate))))
     ;; TODO: other base cases
-    (t
-      (TODO 'regex->nfa))))
+        ;; Base case for a single symbol or :epsilon
+    ((atom regex)
+     (let ((start (newstate))
+           (accept (newstate)))
+       (if (eq regex :epsilon)
+           ;; For :epsilon, create an NFA with a direct epsilon transition
+           (make-fa (list (list start :epsilon accept)) start (list accept))
+         ;; For any other symbol, create an NFA with a direct symbol transition
+         (make-fa (list (list start regex accept)) start (list accept)))))
+
+    ;; Case for :union - Combine NFAs for each subexpression
+    ((eq (car regex) :union)
+     (reduce #'fa-union (mapcar #'regex->nfa (cdr regex))))
+
+    ;; Case for :concatenation - Concatenate NFAs for each subexpression
+    ((eq (car regex) :concatenation)
+     (reduce #'fa-concatenate (mapcar #'regex->nfa (cdr regex))))
+
+    ;; Case for :kleene-closure - Apply Kleene closure on the subexpression
+    ((eq (car regex) :kleene-closure)
+     (fa-repeat (regex->nfa (cadr regex))))
+    ;; (t
+    ;;   (TODO 'regex->nfa))))
+    (t (error "Unsupported operator in REGEX->NFA: ~A" (car regex))))) 
+            ;; Not sure!
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Part 3: Regular Decision and Closure Properties ;;;
@@ -511,17 +643,151 @@
 ;; Lecture: Decision Properties of Regular Languages, Emptiness
 (defun fa-empty (fa)
   "Does FA represent the empty set?"
-  (TODO 'fa-empty))
+  ;; (TODO 'fa-empty))
+  (let ((visited (make-hash-table :test #'equal))
+        (queue (list (finite-automaton-start fa))))
+    (loop
+      ;; Check if there are any states left to explore
+      (when (null queue) (return t)) ; If the queue is empty, the FA is empty
+      (let ((state (pop queue)))
+        ;; If we reach an accept state, return false (not empty)
+        (when (member state (finite-automaton-accept fa))
+          (return nil))
+        ;; Mark the state as visited
+        (setf (gethash state visited) t)
+        ;; Enqueue all reachable states from the current state
+        (dolist (input (finite-automaton-alphabet fa))
+          (dolist (next-state (fa-transition fa state input))
+            (unless (gethash next-state visited)
+              (push next-state queue))))))))
 
 ;; Lecture: Closure Properties of Regular Languages, State Minimization
 (defun dfa-minimize (dfa)
   "Return an equivalent DFA with minimum state."
-  (TODO 'dfa-minimize))
+  ;; (TODO 'dfa-minimize))
+  (let* ((states (finite-automaton-states dfa))
+         (accept-states (finite-automaton-accept dfa))
+         (alphabet (finite-automaton-alphabet dfa))
+         ;; Table to mark distinguishable state pairs
+         (distinguished (make-hash-table :test #'equal)))
+
+    ;; Step 1: Mark pairs of accepting and non-accepting states as distinguishable
+    (dolist (s1 states)
+      (dolist (s2 states)
+        (when (and (not (equal s1 s2))
+                   (xor (member s1 accept-states) (member s2 accept-states)))
+          (setf (gethash (cons s1 s2) distinguished) t))))
+
+    ;; Step 2: Propagate distinguishability based on transitions
+    (loop
+      (let ((updated nil))
+        (dolist (s1 states)
+          (dolist (s2 states)
+            (unless (or (equal s1 s2) (gethash (cons s1 s2) distinguished))
+              ;; Check transitions to see if they lead to distinguishable states
+              (dolist (symbol alphabet)
+                (let ((t1 (dfa-transition dfa s1 symbol))
+                      (t2 (dfa-transition dfa s2 symbol)))
+                  (when (and t1 t2
+                             (not (equal t1 t2))
+                             (gethash (cons (min t1 t2) (max t1 t2)) distinguished))
+                    (setf (gethash (cons s1 s2) distinguished) t)
+                    (setf updated t))))))
+        ;; Exit the loop when no more updates are made
+        (unless updated (return))))
+
+    ;; Step 3: Group indistinguishable states into equivalence classes
+    (let ((state-groups (make-hash-table :test #'equal)))
+      (dolist (s1 states)
+        (dolist (s2 states)
+          (unless (gethash (cons s1 s2) distinguished)
+            ;; Put s1 and s2 in the same equivalence class
+            (let ((group (or (gethash s1 state-groups)
+                             (gethash s2 state-groups)
+                             (gensym "group"))))
+              (setf (gethash s1 state-groups) group)
+              (setf (gethash s2 state-groups) group)))))
+
+      ;; Step 4: Construct the minimized DFA
+      (let ((new-states (remove-duplicates (hash-table-keys state-groups) :test #'equal))
+            (new-start (gethash (finite-automaton-start dfa) state-groups))
+            (new-accept-states (remove-duplicates
+                                (mapcar (lambda (state)
+                                          (gethash state state-groups))
+                                        accept-states)
+                                :test #'equal))
+            (new-edges '()))
+
+        ;; Map original DFA transitions to transitions in the minimized DFA
+        (dolist (edge (finite-automaton-edges dfa))
+          (destructuring-bind (s0 symbol s1) edge
+            (let ((new-s0 (gethash s0 state-groups))
+                  (new-s1 (gethash s1 state-groups)))
+              (push (list new-s0 symbol new-s1) new-edges))))
+
+        ;; Remove duplicate edges and create the minimized DFA
+        (make-fa (remove-duplicates new-edges :test #'equal)
+                 new-start
+                 new-accept-states)))))
 
 ;; Lecture: Closure Properties of Regular Languages, Intersection
 (defun dfa-intersection (dfa-0 dfa-1)
   "Return the intersection FA."
-  (TODO 'dfa-intersection))
+  ;; (TODO 'dfa-intersection))
+  (assert (equal (finite-automaton-alphabet dfa-0) 
+                 (finite-automaton-alphabet dfa-1))
+          ;; (dfa-0 dfa-1)
+          ;; "Both DFAs must use the same input alphabet for a valid intersection operation.")
+
+  ;; Define the alphabet for the new DFA
+  (let* ((alphabet (finite-automaton-alphabet dfa-0))
+         ;; Generate product states as pairs (s0, s1)
+         (states (loop for s0 in (finite-automaton-states dfa-0)
+                       nconc (loop for s1 in (finite-automaton-states dfa-1)
+                                   collect (cons s0 s1))))
+         ;; Define the start state as the pair of start states from both DFAs
+         (start (cons (finite-automaton-start dfa-0) 
+                      (finite-automaton-start dfa-1)))
+         ;; Collect accept states where both states in the pair are accepting
+         (accept-states '())
+         ;; Initialize an empty list for edges
+         (edges '()))
+
+    ;; Identify accept states in the product DFA
+    (dolist (s0 (finite-automaton-accept dfa-0))
+      (dolist (s1 (finite-automaton-accept dfa-1))
+        (let ((product-accept (cons s0 s1)))
+          ;; Only pairs where both states are accepting are added as accept states
+          (push product-accept accept-states))))
+
+    ;; Define transitions for each state pair and input symbol
+    (dolist (state states)
+      (let ((s0 (car state))
+            (s1 (cdr state)))
+
+        ;; Process each input symbol
+        (dolist (input alphabet)
+          ;; Find the transitions for s0 and s1 on the input symbol
+          (let ((t0 (dfa-transition dfa-0 s0 input))
+                (t1 (dfa-transition dfa-1 s1 input)))
+            (when (and t0 t1)
+              ;; Both states have transitions on this input, so add it to the edges
+              (let ((target-state (cons t0 t1)))
+                (push (list state input target-state) edges)))))))
+
+    ;; Remove duplicates in edges and accept states for a clean DFA
+    (let ((unique-edges (remove-duplicates edges :test #'equal))
+          (unique-accept-states (remove-duplicates accept-states :test #'equal)))
+
+      ;; Display information for debugging
+      (format t "~%DFA-Intersection - Start State: ~A" start)
+      (format t "~%DFA-Intersection - Alphabet: ~A" alphabet)
+      (format t "~%DFA-Intersection - Accept States: ~A" unique-accept-states)
+      (format t "~%DFA-Intersection - Total States: ~D" (length states))
+      (format t "~%DFA-Intersection - Total Edges: ~D" (length unique-edges))
+
+      ;; Construct and return the new DFA representing the intersection
+      (make-fa unique-edges start unique-accept-states))))
 
 ;; Lecture: Decision Properties of Regular Languages, Equivalence
 (defun dfa-equivalent (dfa-0 dfa-1)
