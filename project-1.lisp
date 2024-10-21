@@ -414,14 +414,8 @@
           (sort u #'state-predicate)
 
         )
-        (visit-symbol (dfa-states dfa-edges this-subset input-symbol)
+        (visit-symbol (dfa-edges this-subset input-symbol)
 
-          (print "-------------------------------------")
-          (print "running visit-symbol with parameters:")
-          (print dfa-states)
-          (print dfa-edges)
-          (print this-subset)
-          (print input-symbol)
           (let
             (
               (next-subset (sort-subset (move-e-closure nfa this-subset input-symbol)))
@@ -429,13 +423,12 @@
             (cond
               (
                 (equal next-subset nil)
-                `(,dfa-states ,dfa-edges)
+                dfa-edges
               )
               (
                 t
                 (visit-subset
-                  dfa-states
-                  (cons `(,this-subset ,input-symbol ,next-subset) dfa-edges)
+                 (cons `(,this-subset ,input-symbol ,next-subset) dfa-edges)
                   next-subset
                 )
               )
@@ -443,18 +436,13 @@
           )
 
         )
-        (visit-subset (dfa-states dfa-edges subset)
+        (visit-subset (dfa-edges subset)
 
-          (print "-------------------------------------")
-          (print "running visit-subset with parameters:")
-          (print dfa-states)
-          (print dfa-edges)
-          (print subset)
           (cond
             (
               ;; Check if the next subset has already been visited
               (gethash subset visited-hash)
-              `(,dfa-states ,dfa-edges)
+              dfa-edges
             )
             (
               ;; Mark it as visited and process this new subset
@@ -464,7 +452,7 @@
                 (
                   (h (sub-edges input-symbol)
 
-                    (visit-symbol (cons subset dfa-states) sub-edges subset input-symbol)
+                    (visit-symbol sub-edges subset input-symbol)
 
                   )
                 )
@@ -499,11 +487,9 @@
         (
           (start-subset (sort-subset (e-closure nfa (list (finite-automaton-start nfa)) nil)))
           ;; Begin recursive process to build the DFA by visiting all reachable subsets
-          (new-dfa (visit-subset nil nil start-subset))
-          (final-states (car new-dfa))
-          (final-edges (car (cdr new-dfa)))
+          (final-edges (visit-subset nil start-subset))
+          (final-states (hash-table-keys visited-hash))
         )
-        (print "finished running")
         ;; Build and return the DFA using the gathered edges and accepting states
         (make-fa final-edges start-subset (find-accept final-states nil))
       )
