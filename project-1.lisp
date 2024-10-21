@@ -351,11 +351,10 @@
 (defun nfa-simulate (nfa sequence)
   "True if NFA accepts SEQUENCE."
   (labels ((edelta (subset list)
-      (cond 
+      (cond
         (
           (equal list nil) subset
         )
-        
         (
           t (edelta (move-e-closure nfa subset (car list)) (cdr list))
         )
@@ -400,40 +399,118 @@
 
 ;; Subset Construction Lecture: Algorithm 5
 (defun nfa->dfa (nfa)
-  "Convert a nondeterministic finite automaton to a deterministic finite automaton."
-  (let ((visited-hash (make-symbol-hash-table))
-        (alphabet (remove :epsilon (finite-automaton-alphabet nfa))))
-    (labels ((sort-subset (u)
-               ;; sort subsets so we can quickly test for previously
-               ;; visited subsets in the hash table
-               (sort u #'state-predicate))
-             (visit-symbol (edges subset-0 input-symbol)
-               ;; (TODO 'nfa->dfa-visit-symbol))
-               (let* ((next-subset (sort-subset (move-e-closure nfa subset-0 input-symbol))))
-                 ;; Check if the next subset has already been visited
-                 (unless (gethash next-subset visited-hash)
-                   ;; Mark it as visited and process this new subset
-                   (setf (gethash next-subset visited-hash) t)
-                   (visit-subset edges next-subset))
-                 ;; Add the transition to the DFA edges
-                 (push (list subset-0 input-symbol next-subset) edges)))
-             (visit-subset (edges subset)
-               ;; (TODO 'nfa->dfa-visit-subset)))
-               ;; Process each symbol in the alphabet for this subset
-               (dolist (symbol alphabet)
-                 (visit-symbol edges subset symbol))
-                ;; Mark the subset as accepting if any of its states are accepting states in the NFA
-                 (when (intersection subset (finite-automaton-accept nfa) :test #'equal)
-                   (push subset dfa-accept)))
-      ;; (TODO 'nfa->dfa))))
-      (let ((start-subset (sort-subset (e-closure nfa (list (finite-automaton-start nfa))))))
-        ;; Mark this initial subset as visited
-        (setf (gethash start-subset visited-hash) t)
-        ;; Begin recursive process to build the DFA by visiting all reachable subsets
-        (visit-subset dfa-edges start-subset))
-      ;; Build and return the DFA using the gathered edges and accepting states
-      (make-fa dfa-edges start-subset dfa-accept))
 
+  "Convert a nondeterministic finite automaton to a deterministic finite automaton."
+  (let
+    (
+      (visited-hash (make-symbol-hash-table))
+      (alphabet (remove :epsilon (finite-automaton-alphabet nfa)))
+    )
+    (labels
+      (
+        (sort-subset (u)
+
+          ;; sort subsets so we can quickly test for previously visited subsets in the hash table
+          (sort u #'state-predicate)
+
+        )
+        (visit-symbol (dfa-states dfa-edges this-subset input-symbol)
+
+          (print "-------------------------------------")
+          (print "running visit-symbol with parameters:")
+          (print dfa-states)
+          (print dfa-edges)
+          (print this-subset)
+          (print input-symbol)
+          (let
+            (
+              (next-subset (sort-subset (move-e-closure nfa this-subset input-symbol)))
+            )
+            (cond
+              (
+                (equal next-subset nil)
+                `(,dfa-states ,dfa-edges)
+              )
+              (
+                t
+                (visit-subset
+                  dfa-states
+                  (cons `(,this-subset ,input-symbol ,next-subset) dfa-edges)
+                  next-subset
+                )
+              )
+            )
+          )
+
+        )
+        (visit-subset (dfa-states dfa-edges subset)
+
+          (print "-------------------------------------")
+          (print "running visit-subset with parameters:")
+          (print dfa-states)
+          (print dfa-edges)
+          (print subset)
+          (cond
+            (
+              ;; Check if the next subset has already been visited
+              (gethash subset visited-hash)
+              `(,dfa-states ,dfa-edges)
+            )
+            (
+              ;; Mark it as visited and process this new subset
+              t
+              (setf (gethash subset visited-hash) t)
+              (labels
+                (
+                  (h (sub-edges input-symbol)
+
+                    (visit-symbol (cons subset dfa-states) sub-edges subset input-symbol)
+
+                  )
+                )
+                ;; Process each symbol in the alphabet for this subset
+                (fold-left #'h dfa-edges alphabet)
+              )
+            )
+          )
+
+        )
+        (find-accept (dfa-states found)
+
+          ;; Mark as accepting if any of its states are accepting states in the NFA
+          (cond
+            (
+              (equal dfa-states nil)
+              found
+            )
+            (
+              (intersection (car dfa-states) (finite-automaton-accept nfa) :test #'equal)
+              (find-accept (cdr dfa-states) (cons (car dfa-states) found))
+            )
+            (
+              t
+              (find-accept (cdr dfa-states) found)
+            )
+          )
+
+        )
+      )
+      (let*
+        (
+          (start-subset (sort-subset (e-closure nfa (list (finite-automaton-start nfa)) nil)))
+          ;; Begin recursive process to build the DFA by visiting all reachable subsets
+          (new-dfa (visit-subset nil nil start-subset))
+          (final-states (car new-dfa))
+          (final-edges (car (cdr new-dfa)))
+        )
+        (print "finished running")
+        ;; Build and return the DFA using the gathered edges and accepting states
+        (make-fa final-edges start-subset (find-accept final-states nil))
+      )
+    )
+  )
+
+)
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -470,7 +547,7 @@
     (
       (eq regex :.) ;; '0-ary' operator
       (assert alphabet)
-      `(union ,@alphabet)
+      `(:union ,@alphabet)
     )
     (
       (atom regex)
