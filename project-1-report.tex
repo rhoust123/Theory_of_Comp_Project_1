@@ -59,8 +59,30 @@
     \item Prove that NFA simulation is possible in $O(|Q|*|\sigma|)$
     time.%
 
+    \color{blue}
+    \begin{itemize}
+        \item To prove NFA simulation possible in $O(|Q| * |\sigma|)$ time, we will use a proof by construction.
+        \item Looking at the algorithm explained in lecture, we arrive at a few steps:
+        \begin{enumerate}
+            \item Take, as input, the NFA itself and an input sequence. 
+            \item Let $q_0$ be the set of start states and let $F$ be the set of accepting states.
+            \item Perform e-closure on $q_0$.
+            \item Then, iterate through the elements of the input sequence, and use the current iteration's element in the call to e-closure. Save the new set of states arrived at, $q_i$, every time an iteration occurs. 
+            \item Continue until e-closure does not return any more states or all the input sequence's elements have been followed. 
+            \item If the final version of $q_i \in F$, then we accept. 
+        \end{enumerate}
+        \item Looking at step $v.$, we can see that the algorithm ends after either all of the states, $Q$, have been visited, or, after the input sequence runs out of elements to be followed. 
+        \item In the case that an input sequence requires both all states to be visited and iterates through all elements of an input sequence, the algorithm will take, at the most, $O(|Q| * |\sigma|)$ time.
+        \item We have proven that NFA simulation is possible within $O(|Q| * |\sigma|)$ time. $\square$
+    \end{itemize}
+    \color{black}
+
     \item Why is there such a difference in performance between
     Thompson's grep and some other ``regex'' engines?
+    \color{blue}
+    There is a difference in performance between Thompson's grep and other ``regex'' engines because other regex engines likely convert their NFAs to DFAs before simulating - whereas Thompson simulates NFAs directly. The conversion from NFA to DFA may sometimes result in DFAs with exponentially more states than the NFA originally had, resulting in a different performance metric whe simulating. The conversion itself should also be considered when evaluating the performance of other ``regex'' engines. 
+    \color{black}
+    
   \end{enumerate}
 
 
