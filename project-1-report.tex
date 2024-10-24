@@ -44,7 +44,9 @@
   Thompson have used NFA simulation instead of DFA simulation?
 
   \color{blue}
-  Thompson probably used NFA simulation, instead of DFA simulation, because of the use-case intended by \texttt{grep}. This utility takes in a keyword and searches a set of strings for occurrences of the keyword. In other words, the NFA that has been constructed is simulated one time on the entirety of the set of strings. If the utility were meant to take in several different sets of strings and search them for a keyword, converting the keyword NFA to a DFA and then simulating the set of strings on that DFA would make sense, because DFA simulation is more efficient than NFA simulation. In the case of \texttt{grep}, however, it is a better idea to just simulate the NFA directly, one time. This is because converting the NFA to a DFA is a potentially computationally expensive operation (there could be many thousands of new states created), and it will only pay off if the speed offered by DFA simulation offsets the conversion cost (e.g., a situation in which we must simulate more than once). NFA simulation, then, is what Thompson chose because of efficiency considerations.
+  Thompson used direct NFA simulation because the alternative would mean he would need to convert the provided regular expression to an NFA, then a DFA. The conversion from NFA to DFA is an expensive one, from a time and space pespective. For small inputs, using direct NFA simulation makes more sense because it will likely have better time complexity than conversion to a DFA and then DFA simulation. For large inputs, the conversion from NFA to DFA could produce exponential numbers of states, which would use too much memory (poor space-complexity). 
+
+  In short, Thompson used direct NFA simulation because it has better time and space complexity for small and large inputs, respectively. 
   \color{black}
 
   \item \textbf{Time Complexity:} To simulate an NFA
@@ -69,9 +71,9 @@
             \item Perform e-closure on $q_0$.
             \item Then, iterate through the elements of the input sequence, and use the current iteration's element in the call to e-closure. Save the new set of states arrived at, $q_i$, every time an iteration occurs. 
             \item Continue until e-closure does not return any more states or all the input sequence's elements have been followed. 
-            \item If the final version of $q_i \in F$, then we accept. 
+            \item If the final version of $(q_i \in F)$, then we accept. 
         \end{enumerate}
-        \item Looking at step $v.$, we can see that the algorithm ends after either all of the states, $Q$, have been visited, or, after the input sequence runs out of elements to be followed. 
+        \item Looking at step v., we can see that the algorithm ends after either all of the states, $Q$, have been visited, or, after the input sequence runs out of elements to be followed. 
         \item In the case that an input sequence requires both all states to be visited and iterates through all elements of an input sequence, the algorithm will take, at the most, $O(|Q| * |\sigma|)$ time.
         \item We have proven that NFA simulation is possible within $O(|Q| * |\sigma|)$ time. $\square$
     \end{itemize}
@@ -80,7 +82,7 @@
     \item Why is there such a difference in performance between
     Thompson's grep and some other ``regex'' engines?
     \color{blue}
-    There is a difference in performance between Thompson's grep and other ``regex'' engines because other regex engines likely convert their NFAs to DFAs before simulating - whereas Thompson simulates NFAs directly. The conversion from NFA to DFA may sometimes result in DFAs with exponentially more states than the NFA originally had, resulting in a different performance metric whe simulating. The conversion itself should also be considered when evaluating the performance of other ``regex'' engines. 
+    There is a difference in performance between Thompson's grep and other ``regex'' engines because other regex engines may convert their NFAs to DFAs before simulating - whereas Thompson simulates NFAs directly. As alluded to in question 2, the conversion from NFA to DFA may sometimes result in DFAs with exponentially more states than the NFA originally had - meaning the conversion, from NFA to DFA, can prove very costly at times - in the worst case, exponential in $|\sigma|$. 
     \color{black}
     
   \end{enumerate}
