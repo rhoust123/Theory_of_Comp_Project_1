@@ -781,7 +781,6 @@
 ;; Lecture: Decision Properties of Regular Languages, Emptiness
 (defun fa-empty (fa)
   "Does FA represent the empty set?"
-  ;; (TODO 'fa-empty))
   (let ((visited (make-hash-table :test #'equal))
         (queue (list (finite-automaton-start fa))))
     (loop
@@ -798,6 +797,7 @@
           (dolist (next-state (fa-transition fa state input))
             (unless (gethash next-state visited)
               (push next-state queue))))))))
+
 
 ;; Lecture: Closure Properties of Regular Languages, State Minimization
 (defun dfa-minimize (dfa)
@@ -866,14 +866,14 @@
         ;; Remove duplicate edges and create the minimized DFA
         (make-fa (remove-duplicates new-edges :test #'equal)
                  new-start
-                 new-accept-states)))))
+                 new-accept-states))))))
 
 ;; Lecture: Closure Properties of Regular Languages, Intersection
 (defun dfa-intersection (dfa-0 dfa-1)
   "Return the intersection FA."
   ;; (TODO 'dfa-intersection))
-  (assert (equal (finite-automaton-alphabet dfa-0) 
-                 (finite-automaton-alphabet dfa-1))
+  (assert (equal (finite-automaton-alphabet dfa-0)
+                 (finite-automaton-alphabet dfa-1)))
           ;; (dfa-0 dfa-1)
           ;; "Both DFAs must use the same input alphabet for a valid intersection operation.")
 
@@ -884,7 +884,7 @@
                        nconc (loop for s1 in (finite-automaton-states dfa-1)
                                    collect (cons s0 s1))))
          ;; Define the start state as the pair of start states from both DFAs
-         (start (cons (finite-automaton-start dfa-0) 
+         (start (cons (finite-automaton-start dfa-0)
                       (finite-automaton-start dfa-1)))
          ;; Collect accept states where both states in the pair are accepting
          (accept-states '())
