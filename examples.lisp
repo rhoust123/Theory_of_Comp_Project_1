@@ -17,6 +17,47 @@
            'q0
            '(q1)))
 
+(defparameter *dfa-2*
+  (make-fa '((q0 a q1)
+             (q0 b q2)
+             (q1 a q3)
+             (q1 b q4)
+             (q2 a q4)
+             (q2 b q3)
+             (q3 a q3)
+             (q3 b q3)
+             (q4 a q4)
+             (q4 b q4))
+           'q0
+           '(q3 q4)))
+
+(defparameter *dfa-3*
+  (make-fa '((q0 a q1)
+             (q1 b q2)
+             (q1 d q4)
+             (q2 c q3)
+             (q3 b q2)
+             (q3 d q4)
+             (q4 b q2)
+             (q4 d q4))
+           'q0
+           '(q1 q3 q4)))
+
+(defparameter *dfa-4*
+  (make-fa '((q0 0 q0)
+             (q0 1 q1)
+             (q1 0 q0)
+             (q1 1 q0))
+           'q0
+           '(q1)))
+
+(defparameter *dfa-5*
+  (make-fa '((q0 1 q0)
+             (q0 0 q1)
+             (q1 1 q0))
+           'q0
+           '(q0)))
+
 ;; Make an NFA
 (defparameter *nfa-0*
   (make-fa '((q0 0 q0)
