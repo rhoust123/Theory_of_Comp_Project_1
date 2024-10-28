@@ -1,3 +1,10 @@
+;; CSCI 561 Project 1
+;;
+;; Nathaniel Graves
+;; Rhett Houston
+;; Shadi Nourriz
+;;
+
 ;;;;;;;;;;;;;;;;;;;
 ;;;; Utilities ;;;;
 ;;;;;;;;;;;;;;;;;;;
