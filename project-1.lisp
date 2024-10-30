@@ -149,7 +149,7 @@
                  (t thing)))
              (helper (stream)
                ;; output
-               (format stream "~&digraph { ~%")
+               (format stream "~&digraph~%{~%")
                ;; state labels
                (format stream "~:{~&  ~A[label=\"~A\"];~}"
                        (map-fa-states (lambda (state)
@@ -733,7 +733,7 @@
   (cond
     (
       (null regex) ; Base case for empty set
-      (make-fa nil (newstate) (list (newstate)))
+      (make-fa nil (newstate) nil)
     )
     ;; Base case for a single symbol or :epsilon
     (
@@ -755,17 +755,30 @@
     ;; Case for :union - Combine NFAs for each subexpression
     (
       (eq (car regex) :union)
-      (reduce #'fa-union (mapcar #'regex->nfa (cdr regex)))
+      (if
+        (eq (cdr regex) nil)
+        (make-fa nil (newstate) nil)
+        (reduce #'fa-union (mapcar #'regex->nfa (cdr regex)))
+      )
     )
     ;; Case for :concatenation - Concatenate NFAs for each subexpression
     (
       (eq (car regex) :concatenation)
-      (reduce #'fa-concatenate (mapcar #'regex->nfa (cdr regex)))
+      (if
+        (eq (cdr regex) nil)
+        (let ((one-state (newstate))) (make-fa nil one-state (list one-state)))
+        (reduce #'fa-concatenate (mapcar #'regex->nfa (cdr regex)))
+      )
     )
     ;; Case for :kleene-closure - Apply Kleene closure on the subexpression
     (
       (eq (car regex) :kleene-closure)
       (fa-repeat (regex->nfa (cadr regex)))
+    )
+    ;; List of one non-operator
+    (
+      (eq (cdr regex) nil)
+      (regex->nfa (car regex))
     )
     ;; Not sure!
     (
