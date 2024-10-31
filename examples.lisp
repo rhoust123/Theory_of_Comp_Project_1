@@ -125,8 +125,8 @@
 ;; => nil
 
 
-;; DES for Question 2b
-(defparameter *des-0*
+;; DES for Question 2a
+(defparameter *des-2a*
   (make-fa '(("W: (1, 1)\\nH: (3, 2)" right "W: (1, 2)\\nH: (3, 3)")
              ("W: (1, 1)\\nH: (3, 2)"  down "W: (2, 1)\\nH: (3, 3)")
              ("W: (2, 1)\\nH: (3, 3)"    up "W: (1, 1)\\nH: (2, 3)")
@@ -179,4 +179,22 @@
              ("W: (1, 3)\\nH: (3, 3)" remain "W: (2, 3)\\nH: (3, 3)")
              )
            "W: (1, 1)\\nH: (3, 1)"
+           '()))
+
+;; DES for question 3
+(defparameter *des-3*
+  (make-fa '(("W: (1, 2)\\nH: (2, 1)" right "W: (2, 2)\\nH: (2, 2)")
+             ("W: (1, 2)\\nH: (2, 1)" remain "W: (2, 2)\\nH: (2, 1)")
+             ("W: (2, 2)\\nH: (2, 1)" right "W: (2, 2)\\nH: (2, 2)")
+             ("W: (2, 2)\\nH: (2, 1)" remain "W: (2, 1)\\nH: (2, 1)")
+             )
+           "W: (1, 2)\\nH: (2, 1)"
+           '()))
+
+;; DES for question 4
+(defparameter *des-3*
+  (make-fa '(("W: (1, 1)\\nH: (2, 2)" right "W: (1, 2)\\nH: (2, 3)")
+             ("W: (1, 1)\\nH: (2, 2)" down "W: (2, 1)\\nH: (2, 3)")
+             )
+           "W: (1, 1)\\nH: (2, 2)"
            '()))
