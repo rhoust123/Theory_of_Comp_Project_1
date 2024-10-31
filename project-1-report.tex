@@ -151,6 +151,7 @@ automata operations for support.}
   \begin{figure}[ht]
       \centering
       \includegraphics[width=1.0\textwidth]{wumpus1.png}
+      \caption{Discrete Event System Model for Wumpus-World Map in Fig. 3}
   \end{figure}
 
 \clearpage
@@ -160,15 +161,36 @@ automata operations for support.}
   \begin{enumerate}
     \item Can the human guarantee to avoid being eaten, no matter what
     the wumpus does?  Prove yes or no via automata operations.
-    \item Can the human always escape in finite time (fixed
-    number of steps), no matter what the wumpus does?  Prove yes or
-    no.
+
+    \begin{enumerate}
+        \item To prove whether or not the human can always avoid being eaten, we will use a proof by construction and existing automata operations.
+        \item Shown below, in Figure 5, is a discrete event system represented as a discrete finite automata. The states are the positions of the wumpus and the human. The positions can be represented as $human_x, human_y, wumpus_x, wumpus_y$, where each $x$ and $y$ correspond to the coordinate locations of the human and wumpus, respectively. The transitions represent a movement of the wumpus. 
+        \item The DFA represents all states the game could possibly be in, given every possible wumpus movement at any point in time. The human moves optimally in the attempt to escape. 
+        \item We can use the test for emptiness, \texttt{fa-empty}, to see if our DFA has any accept states (where accept states are defined as $F = \{(wumpus_x,wumpus_y) | (wumpus_x,wumpus_y) = (human_x,human_y)\}$).
+        \item In the DFA we constructed in figure 5, we know a test for emptiness would return true; there are no reachable accept states in the DFA. 
+        \item We have proven that in the case of figure 3, the human can always avoid being eaten, given every possible movement of the wumpus. $\square$
+    \end{enumerate}
 
     \begin{figure}[ht]
       \centering
       \includegraphics[width=0.9\textwidth]{2_wumpus.png}
+      \caption{Discrete Event System Model Construction for Proof in 2b}
   \end{figure}
   \end{enumerate}
+
+  
+    \item Can the human always escape in finite time (fixed
+    number of steps), no matter what the wumpus does?  Prove yes or
+    no.
+
+    \begin{enumerate}
+        \item To prove whether or not the human can always escape, we will use our constructed discrete event system in figure 5 and the same \texttt{fa-empty} test. 
+        \item In the case of figure 5, \texttt{fa-empty} would need to check every reachable state along every transition. 
+        \item This would give our \texttt{fa-empty} algorithm a worst-case (the worst-case being any time the tested DFA is empty) time-complexity similar to breadth-first search, $O(Q + \delta)$, where $Q$ and $\delta$ correspond to the number of states and the number of transitions, respectively. 
+        \item We proved in 2a that the human can always escape and we have defined the time complexity to be, in the worst-case, linear. 
+        \item $\therefore$, we have proved the human can always escape in finite time. $\square$
+    \end{enumerate}
+    
 
   \item Design a map where the wumpus can always eat the human and
   prove via a DES model that this is the case.
