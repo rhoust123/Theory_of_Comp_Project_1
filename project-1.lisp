@@ -9,6 +9,8 @@
 ;;;; Utilities ;;;;
 ;;;;;;;;;;;;;;;;;;;
 
+
+
 (defun hash-table-keys (hash-table)
   "Return the hash table's keys as a list."
   (let ((result nil))
@@ -272,7 +274,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; COMPLETE THE FUNCTIONS BELOW ;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Part 0: DFA Simulation ;;;
