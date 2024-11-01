@@ -1,6 +1,5 @@
 \documentclass[12pt,letterpaper]{ntdhw}
 
-
 \usepackage{ntdmath}
 
 \title{Project 1: Regular Languages and Pursuit-Evasion}
@@ -125,8 +124,11 @@
 automata operations for support.}
 
 \end{quote}
+\bigskip
+\centering
+[See next page]
 
-\begin{figure}[ht]
+\begin{figure}[b]
   \centering
   \begin{tikzpicture}
     \draw[step=1cm,gray,very thin,xshift=.5cm,yshift=.5cm] (-1,-1) grid (2,2);
@@ -142,85 +144,106 @@ automata operations for support.}
   \label{fig:map}
 \end{figure}
 
+\clearpage
+
 \begin{enumerate}
 
   \item For the map in \ref{fig:map}, construct a discrete event
   system model.  Assume that the human's movements are controllable
   and that the wumpus's movements are not controllable.
 
+  For simplicity, we assume that the human cannot move into a square occupied by the wumpus.
+
   \begin{figure}[ht]
       \centering
-      \includegraphics[width=1.0\textwidth]{images/wumpus1.png}
-      \caption{Discrete Event System Model for Wumpus-World Map in Fig. 3}
+      \includegraphics[width=1.0\textwidth]{images/des_1.png}
+      \caption{Discrete Event System Model for Pursuit-Evasion Game in Fig. 3}
   \end{figure}
-
-\clearpage
 
   \item For your DES model of \ref{fig:map}, construct a specification
   for the human to avoid the wumpus and escape.
+
+    H-RIGHT, W-DOWN, H-RIGHT, W-DOWN, H-UP, W-RIGHT, H-UP
+  
+\clearpage
+
   \begin{enumerate}
     \item Can the human guarantee to avoid being eaten, no matter what
     the wumpus does?  Prove yes or no via automata operations.
 
     \begin{enumerate}
-        \item To prove whether or not the human can always avoid being eaten, we will use a proof by construction and existing automata operations.
-        \item Let us represent discrete event systems for this pursuit-evasion game as a finite automaton - 
-        where an FA $= \{Q, q_0, \Sigma, F, \delta\}$. These values are, respectively, the $x$ and $y$ positions of the human (H) and wumpus (W) at a point in time, the state $W:(1,1), H:(3,2)$, the valid coordinate positions offered by the game map, the set of states $\{(x,y) | W:(x,y) = H:(x,y) \wedge H:(x,y) \neq H:(1,3)\}$, and any movement wumpus takes (the human moves optimally, before the wumpus moves). 
-        \item We know then, that if a finite automaton represented this way is empty, that the Wumpus cannot catch the human (i.e., the human can always avoid being eaten) given all possible Wumpus movements. 
-        \item We may use the function, \texttt{fa-empty}, to test an FA like this for emptiness. 
-        \item Finally, in figure 5 below, we have constructed this FA in the case of figure 3. Running the \texttt{fa-empty} function on this FA would return \texttt{True}. 
-        \item We have proved, using finite automata operations and the construction of a finite automaton, that the human can guarantee the avoidance of being eaten, no matter what the wumpus does. $\square$
+        \item If we assume that the human will follow a certain ``strategy", i.e., choose a specific transition from each state, we can collapse figure 4 into an FA modeling only the wumpus's possible responses to this strategy, accept states being those where the wumpus has moved into the human's square.
+        \item If this FA is empty, it follows that the wumpus, no matter what it does, cannot catch a human adhering to this strategy.
+        \item We can use the function \texttt{fa-empty} to test an FA like this for emptiness.
+        \item We have constructed one such FA in figure 5, shown below. Running the \texttt{fa-empty} function on this FA would return \texttt{True}.
+        \item The human can avoid being eaten no matter what the wumpus does. $\square$
     \end{enumerate}
 
     \begin{figure}[ht]
       \centering
       \includegraphics[width=0.9\textwidth]{images/2_wumpus.png}
-      \caption{Discrete Event System Model Construction for Proof in 2b}
+      \caption{Discrete Event System Model Construction for Proof in 2a}
     \end{figure}
 
+\clearpage
   
     \item Can the human always escape in finite time (fixed
     number of steps), no matter what the wumpus does?  Prove yes or
     no.
 
     \begin{enumerate}
-        \item To prove whether or not the human can always escape in finite time, no matter what the wumpus does, we will use a proof by construction and existing finite automata operations. 
-        \item We will use discrete event systems represented as finite automata, as in 2(a), but with a few key differences: $\delta$ is now the movement of the human (the wumpus moves optimally in response), and $F = \{(x,y)|H:(x,y) = H:(1,3) \wedge W:(x,y) \neq H:(x,y)\}$, and $q_0 = W:(1,1), H:(3,1)$.
-        \item We have constructed such a DFA in figure 4. A test for emptiness, \texttt{fa-empty}, run on this FA will return \texttt{True} (i.e., there are no states in which the human has escaped).
-        \item We have proved, using the construction of an FA and existing automata operations, that the human cannot always escape the Wumpus in finite time. $\square$ 
+        \item If we assume that the wumpus will follow a certain ``strategy", i.e., choose a specific transition from each state, we can collapse figure 4 into an FA modeling only the human's possible responses to this strategy, accept states being those where the human has moved into the escape square.
+        \item If this FA is empty, it follows that the human, no matter what it does, cannot break free from a wumpus adhering to this strategy.
+        \item We have constructed such a DFA in figure 6. A test for emptiness, \texttt{fa-empty}, run on this FA will return \texttt{True} (i.e., there are no states in which the human has escaped).
+        \item The human cannot always escape the wumpus in finite time. $\square$ 
     \end{enumerate}
-  \end{enumerate}    
-
-  \item Design a map where the wumpus can always eat the human and
-  prove via a DES model that this is the case.
+  \end{enumerate}
 
     \begin{figure}[ht]
       \centering
-      \includegraphics[width=0.3\textwidth]{images/Map3.jpeg}
-      \includegraphics[width=0.2\textwidth]{images/wumpus3.png}
+      \includegraphics[width=0.7\textwidth]{images/des_2b.png}
+      \caption{Discrete Event System Model Construction for Proof in 2b}
+    \end{figure}
+
+    \clearpage
+
+  \item Design a map where the wumpus can always eat the human and
+  prove via a DES model that this is the case.
+    \begin{figure}[ht]
+      \centering
+    \begin{tikzpicture}
+        \draw[step=1cm,gray,very thin,xshift=.5cm,yshift=.5cm] (-1,-1) grid (2,1);
+        \node at (1cm,1cm) {W};
+        \node at (0cm,0cm) {H};
+        \node at (0cm,1cm) {O};
+        \node at (2cm,0cm) {E};
+    \end{tikzpicture}
+      \includegraphics[width=0.25\textwidth]{images/des_3.png}
       \caption{Pursuit-Evasion Map and Corresponding DES in which the Wumpus Can Always Eat the Human}
     \end{figure}
 
     \begin{enumerate}
-        \item Shown in figure 6 is a map in which the Wumpus can always eat the human, and a DES, represented as a finite automaton, corresponding to the map. 
-        \item This DES / FA is defined in a similar manner to the FA explored in the proof for problem 2(b): $\delta$ is the movement of the human (the wumpus moves optimally in response), and $F = \{(x,y)|H:(x,y) = H:(1,3) \wedge W:(x,y) \neq H:(x,y)\}$. $q_0 = W:(1,2), H:(2,1)$. 
-        \item The constructed FA in figure 6 is empty. $\therefore$, we have designed a map where the wumpus can always eat the human. $\square$
+        \item This DES / FA is defined in the same manner as the FA explored in the proof for problem 2(b).
+        \item The constructed FA in figure 7 is empty, and does not have any loops. Therefore, we have designed a map where the wumpus can always eat the human. $\square$
     \end{enumerate}
 
   \item Design a map where the human can always escape and prove via a
   DES model that this is the case.
-
     \begin{figure}[ht]
       \centering
-      \includegraphics[width=0.3\textwidth]{images/Map4.jpeg}
-      \includegraphics[width=0.2\textwidth]{images/wumpus4.png}
+    \begin{tikzpicture}
+        \draw[step=1cm,gray,very thin,xshift=.5cm,yshift=.5cm] (-1,-1) grid (2,1);
+        \node at (0cm,1cm) {W};
+        \node at (0cm,0cm) {H};
+        \node at (2cm,0cm) {E};
+    \end{tikzpicture}
+      \includegraphics[width=0.25\textwidth]{images/wumpus4.png}
       \caption{Pursuit-Evasion Map and Corresponding DES in which the Human Can Always Escape}
     \end{figure}
 
     \begin{enumerate}
-        \item Shown in figure 7 is a map in which the Wumpus can always eat the human, and a DES, represented as a finite automaton, corresponding to the map. 
-        \item This DES / FA is defined in a similar manner to the FA explored in the proof for problem 2(a): $\delta$ is the movement of the wumpus (the human moves optimally before wumpus movements), and $F = \{(x,y)|W:(x,y) = H:(x,y)\}$. $q_0 = W:(1,1), H:(2,1)$. 
-        \item The constructed FA in figure 7 is empty. $\therefore$, we have designed a map where the human can always escape. $\square$
+        \item This DES / FA is defined in the same manner as the FA explored in the proof for problem 2(a).
+        \item The constructed FA in figure 8 is empty, and does not have any loops. Therefore, we have designed a map where the human can always escape. $\square$
     \end{enumerate}
 
 \end{enumerate}

@@ -895,39 +895,20 @@
                  new-accept-states)))))
 
 
-(defun set-intersection (set-1 set-2)
-
-  (labels
-    (
-      (meta-sect (set-in set-comp set-out)
-
-        (cond
-          (
-            (equal set-in nil)
-            set-out
-          )
-          (
-            (set-member set-comp (car set-in))
-            (meta-sect (cdr set-in) set-comp (cons (car set-in) set-out))
-          )
-          (
-            t
-            (meta-sect (cdr set-in) set-comp set-out)
-          )
-        )
-
-      )
-    )
-    (meta-sect set-1 set-2 nil)
-  )
-
-)
+(defun set-union (set-1 set-2)
+  (cond
+    ((equal set-1 nil)
+     set-2)
+    ((set-member set-2 (car set-1))
+     (set-union (cdr set-1) set-2))
+    (t
+     (cons (car set-1) (set-union (cdr set-1) set-2)))))
 
 ;; Lecture: Closure Properties of Regular Languages, Intersection
 (defun product-dfa (dfa-0 dfa-1 predicate)
 
   ;; Define the alphabet for the new DFA
-  (let* ((alphabet (set-intersection (finite-automaton-alphabet dfa-0)
+  (let* ((alphabet (set-union (finite-automaton-alphabet dfa-0)
                                      (finite-automaton-alphabet dfa-1)))
          ;; Generate product states as pairs (s0, s1)
          (states (loop for s0 in (finite-automaton-states dfa-0)
