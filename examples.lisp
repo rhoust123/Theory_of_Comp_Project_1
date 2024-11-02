@@ -436,7 +436,7 @@
            '()))
 
 ;; DES for question 4
-(defparameter *des-3*
+(defparameter *des-4*
   (make-fa '(("W: (1, 1)\\nH: (2, 2)" right "W: (1, 2)\\nH: (2, 3)")
              ("W: (1, 1)\\nH: (2, 2)"  down "W: (2, 1)\\nH: (2, 3)"))
            "W: (1, 1)\\nH: (2, 2)"

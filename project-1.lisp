@@ -805,16 +805,14 @@
   (not (equal a b)))
 
 ;; Lecture: Decision Properties of Regular Languages, Emptiness
-(defun fa-empty (fa)
-  "Does FA represent the empty set?"
+(defun fa-search (fa predicate)
   (let ((visited (make-hash-table :test #'equal))
         (queue (list (finite-automaton-start fa))))
     (loop
       ;; Check if there are any states left to explore
-      (when (null queue) (return t)) ;; If the queue is empty, the FA is empty
+      (when (null queue) (return t)) ;; If the queue is empty, no state matches the search
       (let ((state (pop queue)))
-        ;; If we reach an accept state, return false (not empty)
-        (when (set-member (finite-automaton-accept fa) state)
+        (when (funcall predicate fa state)
           (return nil))
         ;; Mark the state as visited
         (setf (gethash state visited) t)
@@ -824,11 +822,182 @@
             (unless (gethash next-state visited)
               (push next-state queue))))))))
 
+(defun fa-empty (fa)
+  "Does FA represent the empty set?"
+  (labels
+    (
+      ;; If we reach an accept state, return false (not empty)
+      (is-accepting (fa state)
+
+        (set-member (finite-automaton-accept fa) state)
+
+      )
+    )
+    (fa-search fa #'is-accepting)
+  )
+)
+
+(defun is-dead (fa test-state)
+
+  (let
+    (
+      (test-fa (make-fa (finite-automaton-edges fa) test-state (finite-automaton-accept fa)))
+    )
+    (fa-empty test-fa)
+  )
+
+)
+
+(defun is-unreachable (fa test-state)
+
+  (labels
+    (
+      (is-reached (fa state)
+
+        (declare (ignore fa))
+        (equal state test-state)
+
+      )
+    )
+    (fa-search fa #'is-reached)
+  )
+
+)
+
+(defun excise-non-factors (fa)
+
+  (labels
+    (
+      (screen-accept-states (queued cleared)
+
+        (cond
+          (
+            (equal queued nil)
+            cleared
+          )
+          (
+            (is-unreachable fa (car queued))
+            (screen-accept-states (cdr queued) cleared)
+          )
+          (
+            t
+            (screen-accept-states (cdr queued) (cons (car queued) cleared))
+          )
+        )
+
+      )
+    )
+    (let*
+      (
+        (phase-one (make-fa
+                    (finite-automaton-edges fa)
+                    (finite-automaton-start fa)
+                    (screen-accept-states (finite-automaton-accept fa) nil)))
+      )
+      (labels
+        (
+          (screen-accept-edges (queued cleared)
+
+            (cond
+              (
+                (equal queued nil)
+                cleared
+              )
+              (
+                (or
+                  (and
+                    (set-member (finite-automaton-accept fa) (caar queued))
+                    (not (set-member (finite-automaton-accept phase-one) (caar queued)))
+                  )
+                  (and
+                    (set-member (finite-automaton-accept fa) (caddar queued))
+                    (not (set-member (finite-automaton-accept phase-one) (caddar queued)))
+                  )
+                )
+                (screen-accept-edges (cdr queued) cleared)
+              )
+              (
+                t
+                (screen-accept-edges (cdr queued) (cons (car queued) cleared))
+              )
+            )
+
+          )
+        )
+        (let
+          (
+            (phase-two (make-fa
+                        (screen-accept-edges (finite-automaton-edges phase-one) nil)
+                        (finite-automaton-start phase-one)
+                        (finite-automaton-accept phase-one)))
+          )
+          (labels
+            (
+              (screen-all-states (queued cleared)
+
+                (cond
+                  (
+                    (equal queued nil)
+                    cleared
+                  )
+                  (
+                    (or
+                      (is-dead phase-two (car queued))
+                      (is-unreachable phase-two (car queued))
+                    )
+                    (screen-all-states (cdr queued) cleared)
+                  )
+                  (
+                    t
+                    (screen-all-states (cdr queued) (cons (car queued) cleared))
+                  )
+                )
+
+              )
+              (screen-all-edges (queued required cleared)
+
+                (cond
+                  (
+                    (equal queued nil)
+                    cleared
+                  )
+                  (
+                    (not
+                      (and
+                        (set-member required (caar queued))
+                        (set-member required (caddar queued))
+                      )
+                    )
+                    (screen-accept-edges (cdr queued) cleared)
+                  )
+                  (
+                    t
+                    (screen-accept-edges (cdr queued) (cons (car queued) cleared))
+                  )
+                )
+
+              )
+            )
+            (make-fa
+             (screen-all-edges
+              (finite-automaton-edges phase-two)
+              (screen-all-states (finite-automaton-states phase-two) nil)
+              nil)
+             (finite-automaton-start phase-two)
+             (finite-automaton-accept phase-two))
+          )
+        )
+      )
+    )
+  )
+
+)
 
 ;; Lecture: Closure Properties of Regular Languages, State Minimization
 (defun dfa-minimize (dfa)
   "Return an equivalent DFA with minimum state."
-  (let* ((states (finite-automaton-states dfa))
+  (let* ((dfa (excise-non-factors dfa))
+         (states (finite-automaton-states dfa))
          (accept-states (finite-automaton-accept dfa))
          (alphabet (finite-automaton-alphabet dfa))
          ;; Table to mark distinguishable state pairs
@@ -902,14 +1071,14 @@
     ((set-member set-2 (car set-1))
      (set-union (cdr set-1) set-2))
     (t
-     (cons (car set-1) (set-union (cdr set-1) set-2)))))
+     (set-union (cdr set-1) (cons (car set-1) set-2)))))
 
 ;; Lecture: Closure Properties of Regular Languages, Intersection
 (defun product-dfa (dfa-0 dfa-1 predicate)
 
   ;; Define the alphabet for the new DFA
   (let* ((alphabet (set-union (finite-automaton-alphabet dfa-0)
-                                     (finite-automaton-alphabet dfa-1)))
+                              (finite-automaton-alphabet dfa-1)))
          ;; Generate product states as pairs (s0, s1)
          (states (loop for s0 in (finite-automaton-states dfa-0)
                        nconc (loop for s1 in (finite-automaton-states dfa-1)
@@ -917,14 +1086,14 @@
          ;; Define the start state as the pair of start states from both DFAs
          (start (cons (finite-automaton-start dfa-0)
                       (finite-automaton-start dfa-1)))
-         ;; Collect accept states where both states in the pair are accepting
+         ;; Collect accept states
          (accept-states '())
          ;; Initialize an empty list for edges
          (edges '()))
 
     ;; Identify accept states in the product DFA
-    (dolist (s0 (finite-automaton-states dfa-0))
-      (dolist (s1 (finite-automaton-states dfa-1))
+    (dolist (s0 (cons nil (finite-automaton-states dfa-0)))
+      (dolist (s1 (cons nil (finite-automaton-states dfa-1)))
         (when (funcall predicate dfa-0 dfa-1 s0 s1)
           (let ((product-accept (cons s0 s1)))
             (push product-accept accept-states)))))
@@ -937,12 +1106,10 @@
         ;; Process each input symbol
         (dolist (input alphabet)
           ;; Find the transitions for s0 and s1 on the input symbol
-          (let ((t0 (dfa-transition dfa-0 s0 input))
-                (t1 (dfa-transition dfa-1 s1 input)))
-            (when (and t0 t1)
-              ;; Both states have transitions on this input, so add it to the edges
-              (let ((target-state (cons t0 t1)))
-                (push (list state input target-state) edges)))))))
+          (let* ((t0 (dfa-transition dfa-0 s0 input))
+                 (t1 (dfa-transition dfa-1 s1 input))
+                 (target-state (cons t0 t1))) ;; nil (dead) state if no transition
+            (push (list state input target-state) edges)))))
 
     ;; Remove duplicates in edges and accept states for a clean DFA
     (let ((unique-edges (remove-duplicates edges :test #'equal))
